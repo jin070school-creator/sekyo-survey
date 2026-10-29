@@ -115,7 +115,6 @@ textarea:focus{border-color:var(--accent);outline:none}
 
 <div id="bar" class="bar" hidden>
   <div class="in">
-    <button class="back" id="backBtn" type="button">← 처음</button>
     <div class="track" aria-hidden="true"><div class="fill" id="fill"></div></div>
     <div class="t" id="prog">0 / 12</div>
   </div>
@@ -201,9 +200,15 @@ function saveDraft(){ try{ localStorage.setItem(draftKey(role, grade), JSON.stri
 function loadDraft(r, g){ try{ return JSON.parse(localStorage.getItem(draftKey(r, g))||"null"); }catch(e){ return null; } }
 function clearDraft(r, g){ try{ localStorage.removeItem(draftKey(r, g)); }catch(e){} }
 
-/* 중복 참여 확인: 이 기기에서 제출한 기록을 남깁니다. 학부모는 자녀가 여러 명일 수 있어 학년별로 따로 확인합니다. */
+/* 중복 참여 확인: 이 기기에서 제출한 기록을 남깁니다.
+   어느 설문이든 한 번 내면 다른 대상 설문도 막습니다. 단, 학부모는 자녀가 여러 명일 수 있어 다른 학년 학부모 설문만 허용합니다. */
 function doneKey(r, g){ return "sekyo-survey-done-" + r + (r === "parent" ? "-" + g : ""); }
-function isDone(r, g){ try{ return !!localStorage.getItem(doneKey(r, g)) || document.cookie.includes(doneKey(r, g) + "=1"); }catch(e){ return false; } }
+function hasDone(key){ try{ return !!localStorage.getItem(key) || document.cookie.includes(key + "=1"); }catch(e){ return false; } }
+function isDone(r, g){
+  if (hasDone(doneKey("student")) || hasDone(doneKey("staff"))) return true;
+  const parentDone = GRADES.filter(x => hasDone(doneKey("parent", x)));
+  return r === "parent" ? parentDone.includes(g) : parentDone.length > 0;
+}
 function markDone(r, g){
   try{ localStorage.setItem(doneKey(r, g), new Date().toISOString()); }catch(e){}
   try{ document.cookie = doneKey(r, g) + "=1; max-age=31536000; path=/; SameSite=None; Secure"; }catch(e){}
@@ -218,23 +223,16 @@ function go(r, g){
   else renderSurvey(r, g);
   window.scrollTo(0,0);
 }
-document.getElementById("backBtn").onclick = () => go(null);
 
-/* ---------- home ---------- */
+/* ---------- no role: 대상별 링크로만 들어올 수 있습니다 ---------- */
 function renderHome(){
   role = null; bar.hidden = true;
   app.innerHTML = `
     <header class="head">
       <div class="school">${SCHOOL}</div>
       <h1>${TITLE}</h1>
-      <p class="intro">응답하시는 분에 맞는 설문을 선택해 주세요. 12개 문항과 3개의 서술형 문항으로 구성되어 있으며 5분 정도 걸립니다.</p>
-    </header>
-    <nav class="roles" aria-label="설문 대상 선택">
-      <button type="button" class="role" data-r="student"><b>학생</b><span>학생용 설문</span></button>
-      <button type="button" class="role" data-r="parent"><b>학부모</b><span>학부모용 설문</span></button>
-      <button type="button" class="role" data-r="staff"><b>교직원</b><span>교직원용 설문</span></button>
-    </nav>`;
-  app.querySelectorAll(".role").forEach(b => b.onclick = () => go(b.dataset.r));
+      <p class="intro">학교에서 안내받은 설문 링크(또는 QR코드)로 접속해 주세요.</p>
+    </header>`;
 }
 
 /* ---------- grade chooser ---------- */
@@ -249,19 +247,15 @@ function renderGrade(r){
     </header>
     <nav class="roles" aria-label="학년 선택">
       ${GRADES.map(g=>`<button type="button" class="role" data-g="${g}"><b>${g}학년</b><span>${s.who === "학부모" ? "자녀 " : ""}${g}학년</span></button>`).join("")}
-    </nav>
-    <div class="submit"><button type="button" class="btn ghost" id="homeBtn">← 처음으로</button></div>`;
+    </nav>`;
   app.querySelectorAll(".role").forEach(b => b.onclick = () => go(r, b.dataset.g));
-  document.getElementById("homeBtn").onclick = () => go(null);
 }
 
 /* ---------- already done ---------- */
 function renderDone(r, g){
   role = null; bar.hidden = true;
   app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
-    <h2>이미 응답에 참여하였습니다</h2><p>${S[r].label}${g ? ` (${g}학년)` : ""} 설문에 이미 응답하셨습니다.<br>참여해 주셔서 감사합니다.</p>
-    <p style="margin-top:28px"><button type="button" class="btn ghost" id="homeBtn">처음으로</button></p></div>`;
-  document.getElementById("homeBtn").onclick = () => go(null);
+    <h2>이미 응답에 참여하였습니다</h2><p>이 기기에서는 이미 설문에 응답하셨습니다.<br>참여해 주셔서 감사합니다.</p></div>`;
 }
 
 /* ---------- survey ---------- */
@@ -361,15 +355,15 @@ function onSubmit(e){
 function renderThanks(){
   bar.hidden = true;
   app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
-    <h2>설문이 제출되었습니다</h2><p>소중한 의견 감사합니다.<br>2027학년도 학교교육과정 수립에 반영하겠습니다.</p>
-    <p style="margin-top:28px"><button type="button" class="btn ghost" id="homeBtn">처음으로</button></p></div>`;
-  document.getElementById("homeBtn").onclick = () => go(null);
+    <h2>설문이 완료되었습니다</h2><p>감사합니다.</p></div>`;
   window.scrollTo(0,0);
 }
 
 /* 주소 끝에 ?role=student / parent / staff 를 붙이면 해당 설문이 바로 열립니다. (&grade=1~3 을 더 붙이면 학년 선택도 건너뜁니다) */
+/* 대상은 주소의 폴더(/student/, /parent/, /staff/)로 정합니다. 예전 ?role= 주소도 그대로 열립니다. */
 const params = new URLSearchParams(location.search);
-go(params.get("role"), params.get("grade"));
+const pathRole = location.pathname.split("/").find(p => S[p]);
+go(pathRole || params.get("role"), params.get("grade"));
 </script>
 </body>
 </html>
