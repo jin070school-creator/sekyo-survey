@@ -65,7 +65,7 @@ function make(base){
   if (!base.endsWith("/")) base += "/";
   $("cards").innerHTML = "";
   TARGETS.forEach(t => {
-    const link = `${base}?role=${t.r}`;
+    const link = `${base}${t.r}/`;
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `<div class="sch">세교중학교 학교평가</div><h2>${t.name}</h2><div class="qr"></div><code>${link}</code><button type="button" class="ghost">이미지로 저장</button>`;
