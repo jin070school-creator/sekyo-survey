@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>세교중 학교평가 설문</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one calm reading column; a sticky progress strip; each question is a row of five large, equal answer tiles (5 → 1, left to right, as on the paper form). */
+:root{
+  --bg:#f6f8f7; --surface:#ffffff; --ink:#18241f; --muted:#5c6b65; --line:#dbe3df;
+  --accent:#1f6b4f; --accent-ink:#ffffff; --accent-soft:#e3f1ea;
+  --s5:#1f6b4f; --s4:#3f8f6c; --s3:#8a9a93; --s2:#b9875a; --s1:#a5543f;
+  --warn:#b4451f; --warn-soft:#fbeae3;
+  --f-display:"Gowun Batang","Nanum Myeongjo",serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111816; --surface:#18221e; --ink:#e7eeea; --muted:#9db0a8; --line:#2b3a34;
+  --accent:#5fc59a; --accent-ink:#0d1a14; --accent-soft:#1d3329;
+  --s5:#5fc59a; --s4:#4aa47d; --s3:#7d8e87; --s2:#c99a6c; --s1:#d07a62;
+  --warn:#f0906c; --warn-soft:#3a221a; color-scheme:dark}}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.65;-webkit-text-size-adjust:100%;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:760px;margin:0 auto;padding:28px 16px 64px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;font-weight:700;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:10px}
+[hidden]{display:none!important}
+
+/* header */
+.school{font-size:14px;font-weight:600;color:var(--accent);letter-spacing:.06em}
+.head h1{font-size:clamp(24px,5.2vw,34px);line-height:1.35;margin-top:6px}
+.badge{display:inline-block;margin-top:12px;padding:4px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:15px}
+.intro{color:var(--muted);margin:14px 0 0;max-width:62ch}
+
+/* role chooser */
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}
+.role{display:flex;flex-direction:column;gap:4px;text-align:left;padding:20px 18px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--surface);cursor:pointer;color:var(--ink);transition:border-color .15s,transform .15s}
+.role:hover{border-color:var(--accent);transform:translateY(-2px)}
+.role b{font-family:var(--f-display);font-size:22px}
+.role span{color:var(--muted);font-size:15px}
+@media (max-width:560px){.roles{grid-template-columns:1fr}}
+
+/* sticky progress */
+.bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .in{max-width:760px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.bar .t{font-weight:600;font-size:15px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.track{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.fill{height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+.back{background:none;border:0;color:var(--muted);font-size:15px;cursor:pointer;padding:4px 2px;white-space:nowrap}
+
+/* legend */
+.legend{margin-top:22px;padding:14px 16px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:13.5px;text-align:center;color:var(--muted)}
+.legend b{display:block;color:var(--ink);font-size:14.5px;line-height:1.35}
+@media (max-width:480px){.legend{padding:12px 8px;gap:4px;font-size:12px}.legend b{font-size:13px}}
+.legend i{display:block;width:10px;height:10px;border-radius:50%;margin:0 auto 4px}
+
+/* questions */
+.qlist{display:flex;flex-direction:column;gap:14px;margin-top:22px}
+.q{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:20px 18px 18px;scroll-margin-top:80px;transition:border-color .2s}
+.q.done{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.q.missing{border-color:var(--warn)}
+.q .no{font-family:var(--f-display);font-weight:700;color:var(--accent);font-size:20px;margin-right:6px}
+.q .txt{font-size:18px;font-weight:500;line-height:1.6}
+.q .ex{display:block;color:var(--muted);font-size:15px;font-weight:400;margin-top:4px}
+.q .need{display:none;color:var(--warn);font-size:14px;font-weight:600;margin-top:8px}
+.q.missing .need{display:block}
+
+.opts{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:16px}
+.opt{--c:var(--s3);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;padding:10px 4px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;text-align:center;line-height:1.25;transition:background .12s,border-color .12s,transform .08s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.opt .n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--c)}
+.opt .l{font-size:14.5px;font-weight:600;word-break:keep-all}
+.opt:hover{border-color:var(--c)}
+.opt:active{transform:scale(.97)}
+.opt[aria-checked="true"]{background:var(--c);border-color:var(--c);color:#fff}
+.opt[aria-checked="true"] .n{color:#fff}
+@media (prefers-color-scheme:dark){.opt[aria-checked="true"],.opt[aria-checked="true"] .n{color:#0d1a14}}
+.opt[aria-checked="true"]::after{content:"✓";position:absolute;top:5px;right:8px;font-size:13px;font-weight:700}
+.opt[data-v="5"]{--c:var(--s5)}.opt[data-v="4"]{--c:var(--s4)}.opt[data-v="3"]{--c:var(--s3)}.opt[data-v="2"]{--c:var(--s2)}.opt[data-v="1"]{--c:var(--s1)}
+@media (max-width:480px){.opt{min-height:70px;padding:8px 2px}.opt .l{font-size:13px}.opt .n{font-size:20px}.q{padding:18px 14px 14px}}
+
+/* open questions */
+.sec{margin-top:36px}
+.sec h2{font-size:22px}
+.sec p.s{color:var(--muted);margin:6px 0 0;font-size:15px}
+.open{display:flex;flex-direction:column;gap:6px;margin-top:18px}
+.open label{font-weight:600;font-size:16.5px}
+.open small{color:var(--muted);font-size:14px;font-weight:400}
+textarea{width:100%;min-height:110px;resize:vertical;padding:14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px;line-height:1.6}
+textarea:focus{border-color:var(--accent);outline:none}
+
+/* submit */
+.submit{margin-top:32px;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.btn{appearance:none;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:18px;padding:17px 20px;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--line);font-size:16px;padding:12px 18px}
+.msg{font-size:15px;color:var(--muted);text-align:center;min-height:1.5em}
+.msg.err{color:var(--warn);font-weight:600}
+
+/* thanks */
+.thanks{text-align:center;padding:60px 8px}
+.thanks .mark{width:72px;height:72px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:36px;margin:0 auto 18px}
+.thanks h2{font-size:28px}
+.thanks p{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<div id="bar" class="bar" hidden>
+  <div class="in">
+    <div class="track" aria-hidden="true"><div class="fill" id="fill"></div></div>
+    <div class="t" id="prog">0 / 12</div>
+  </div>
+</div>
+
+<main class="wrap" id="app"></main>
+
+<script>
+/* ▼ Apps Script 웹 앱 주소(…/exec)를 따옴표 안에 붙여넣으세요. 응답이 이 주소를 거쳐 구글 시트에 저장됩니다. */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzPs4QeEFMkNNtDBykzU7hyYLaV9OkXXos5tZ7JzTyacS4x8CNDf3Fw4Evp7aC0ehfokQ/exec";
+
+const SCHOOL = "세교중학교";
+const TITLE = "2026학년도 학교평가 및 2027학년도 교육과정 수립을 위한 설문";
+const SCALE = [
+  {v:5,l:"매우 그렇다",p:"81~100점"},
+  {v:4,l:"그렇다",p:"61~80점"},
+  {v:3,l:"보통이다",p:"41~60점"},
+  {v:2,l:"그렇지 않다",p:"21~40점"},
+  {v:1,l:"전혀 그렇지 않다",p:"0~20점"}
+];
+const OPEN = [
+  {k:"keep",l:"2026학년도 교육활동 중에서 만족도가 높거나, 계속되었으면 하는 교육활동을 적어 주세요."},
+  {k:"improve",l:"개선되었으면 하는 교육활동이나 학교 운영 사항을 이유와 함께 적어 주세요.",h:"개선 방안이 있다면 함께 제시해 주세요."},
+  {k:"new",l:"2027학년도에 새로 도입했으면 하는 교육활동을 적어 주세요."}
+];
+const GRADES = [1,2,3];
+const S = {
+  student:{label:"학생용",who:"학생",grades:"학년을 선택해 주세요",intro:"이 설문은 2026학년도 세교중학교의 교육활동과 학교 운영을 돌아보고, 2027학년도 학교교육과정 수립에 학생 여러분의 의견을 반영하기 위한 것입니다. 성실하게 응답하여 주시길 바랍니다. 감사합니다.",q:[
+    ["우리 학교는 소통과 공감, 존중과 배려의 관계 형성을 위해 노력한다."],
+    ["우리 학교는 학급회의, 학생자치회, 설문 등을 통해 모은 학생의 의견을 학교 운영에 반영한다."],
+    ["우리 학교는 학생의 관심과 요구를 반영하여 교육과정을 다양하고 특색 있게 운영한다.","진로탐색활동, 주제선택활동, 동아리활동, 과학행사, 스포츠클럽 등"],
+    ["우리 학교의 수업과 평가(정기시험, 수행평가)는 나의 배움과 성장에 도움이 된다."],
+    ["우리 학교는 공부에 어려움이 있는 학생에게 필요한 도움을 준다."],
+    ["우리 학교의 진로교육은 내가 진로를 탐색하고 설계하는 데 도움이 된다.","진로 수업, 진로 체험, 지역사회 연계 체험, 진로 상담 등"],
+    ["우리 학교의 디지털기기 활용 수업은 나의 학습에 도움이 된다."],
+    ["우리 학교의 인성교육과 세계시민교육은 내가 다른 사람을 존중하고 공동체의 일원으로 성장하는 데 도움이 된다."],
+    ["우리 학교는 학생 주도의 자치활동과 동아리 활동이 활발하게 이루어지도록 지원한다.","학생자치회, 자율동아리, 캠페인 활동, 각종 행사 등"],
+    ["우리 학교는 학생의 건강하고 안전한 학교생활을 위해 노력한다.","학교스포츠클럽, 건강한 급식, 학교폭력 예방, 상담, 안전교육 등"],
+    ["우리 학교는 독서교육을 위해 다양한 프로그램과 행사를 운영한다."],
+    ["나는 우리 학교의 교육활동과 학교생활에 전반적으로 만족한다."]
+  ]},
+  staff:{label:"교직원용",who:"교직원",intro:"이 설문은 2026학년도 세교중학교의 교육활동과 학교 운영을 돌아보고, 2027학년도 학교교육과정 수립에 교직원의 의견을 반영하기 위한 것입니다. 우리 학교 교육 발전에 밑거름이 될 것입니다. 감사합니다.",q:[
+    ["우리 학교는 소통과 공감, 존중과 배려의 관계 형성을 위해 노력한다."],
+    ["우리 학교는 교직원회의, 협의회 등을 통해 모은 교직원의 의견을 학교 운영에 반영하고, 참여와 숙의를 통해 공동체의 문제를 해결하려고 노력한다."],
+    ["우리 학교는 학생의 특성을 고려하여 교육과정을 다양하고 특색 있게 편성·운영한다."],
+    ["우리 학교는 학생의 성장을 중심으로 교육과정 재구성, 수업, 평가, 기록을 연계하여 운영한다."],
+    ["우리 학교는 학습에 어려움이 있는 학생에게 필요한 지원을 제공한다."],
+    ["우리 학교의 진로교육은 학생이 진로를 탐색하고 설계하는 데 도움이 된다."],
+    ["우리 학교의 디지털기기 활용 수업과 유료 프로그램 지원은 학생의 주도성과 협력을 이끄는 수업을 하는데 도움을 준다."],
+    ["우리 학교의 인성교육과 세계시민교육은 학생이 다른 사람을 존중하고 공동체의 일원으로 성장하는 데 도움이 된다."],
+    ["우리 학교는 학생 주도의 자치활동과 동아리 활동이 활발하게 이루어지도록 지원한다."],
+    ["우리 학교는 학생의 건강하고 안전한 학교생활을 위해 노력한다."],
+    ["우리 학교는 독서교육을 위해 다양한 프로그램과 행사를 운영한다."],
+    ["나는 우리 학교의 교육활동과 학교 운영에 전반적으로 만족한다."]
+  ]},
+  parent:{label:"학부모용",who:"학부모",grades:"자녀의 학년을 선택해 주세요",intro:"이 설문은 2026학년도 세교중학교의 교육활동과 학교 운영을 돌아보고, 2027학년도 학교교육과정 수립에 학부모님의 의견을 반영하기 위한 것입니다. 우리 학교 교육 발전에 밑거름이 될 것입니다. 감사합니다.",q:[
+    ["우리 학교는 소통과 공감, 존중과 배려의 관계 형성을 위해 노력한다."],
+    ["우리 학교는 교육활동이나 행사에 대한 정보를 안내(학교홈페이지, E알리미, 문자 등)하고 학부모의 의견을 학교 운영에 반영한다."],
+    ["우리 학교는 학생의 관심과 요구를 반영하여 교육과정을 다양하고 특색 있게 운영한다.","진로탐색활동, 주제선택활동, 동아리활동, 과학행사, 스포츠클럽 등"],
+    ["우리 학교의 수업과 평가(정기시험, 수행평가)는 자녀의 배움과 성장에 도움이 된다."],
+    ["우리 학교는 학습에 어려움이 있는 학생에게 필요한 지원을 제공한다."],
+    ["우리 학교의 진로교육은 자녀가 진로를 탐색하고 설계하는 데 도움이 된다.","진로 수업, 진로 체험, 지역사회 연계 체험, 진로 상담 등"],
+    ["우리 학교의 디지털기기 활용 수업은 자녀의 학습에 도움이 된다."],
+    ["우리 학교의 인성교육과 세계시민교육은 자녀가 다른 사람을 존중하고 공동체의 일원으로 성장하는 데 도움이 된다."],
+    ["우리 학교는 학생 주도의 자치활동과 동아리 활동이 활발하게 이루어지도록 지원한다.","학생자치회, 자율동아리, 캠페인 활동, 각종 행사 등"],
+    ["우리 학교는 학생의 건강하고 안전한 학교생활을 위해 노력한다.","학교스포츠클럽, 건강한 급식, 학교폭력 예방, 상담, 안전교육 등"],
+    ["우리 학교는 독서교육을 위해 다양한 프로그램과 행사를 운영한다."],
+    ["나는 우리 학교의 교육활동과 학교 운영에 전반적으로 만족한다."]
+  ]}
+};
+
+const app = document.getElementById("app");
+const bar = document.getElementById("bar");
+const fill = document.getElementById("fill");
+const prog = document.getElementById("prog");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let answers = {}, role = null, grade = null;
+
+function draftKey(r, g){ return "sekyo-survey-draft-" + r + (g ? "-" + g : ""); }
+function saveDraft(){ try{ localStorage.setItem(draftKey(role, grade), JSON.stringify({answers, open:readOpen()})); }catch(e){} }
+function loadDraft(r, g){ try{ return JSON.parse(localStorage.getItem(draftKey(r, g))||"null"); }catch(e){ return null; } }
+function clearDraft(r, g){ try{ localStorage.removeItem(draftKey(r, g)); }catch(e){} }
+
+/* 중복 참여 확인: 이 기기에서 제출한 기록을 남깁니다.
+   어느 설문이든 한 번 내면 다른 대상 설문도 막습니다. 단, 학부모는 자녀가 여러 명일 수 있어 다른 학년 학부모 설문만 허용합니다. */
+function doneKey(r, g){ return "sekyo-survey-done-" + r + (r === "parent" ? "-" + g : ""); }
+function hasDone(key){ try{ return !!localStorage.getItem(key) || document.cookie.includes(key + "=1"); }catch(e){ return false; } }
+function isDone(r, g){
+  if (hasDone(doneKey("student")) || hasDone(doneKey("staff"))) return true;
+  const parentDone = GRADES.filter(x => hasDone(doneKey("parent", x)));
+  return r === "parent" ? parentDone.includes(g) : parentDone.length > 0;
+}
+function markDone(r, g){
+  try{ localStorage.setItem(doneKey(r, g), new Date().toISOString()); }catch(e){}
+  try{ document.cookie = doneKey(r, g) + "=1; max-age=31536000; path=/; SameSite=None; Secure"; }catch(e){}
+}
+
+/* ---------- routing ---------- */
+function go(r, g){
+  g = +g || null;
+  if (!S[r]) renderHome();
+  else if (isDone(r, g)) renderDone(r, g);
+  else if (S[r].grades && !GRADES.includes(g)) renderGrade(r);
+  else renderSurvey(r, g);
+  window.scrollTo(0,0);
+}
+
+/* ---------- no role: 대상별 링크로만 들어올 수 있습니다 ---------- */
+function renderHome(){
+  role = null; bar.hidden = true;
+  app.innerHTML = `
+    <header class="head">
+      <div class="school">${SCHOOL}</div>
+      <h1>${TITLE}</h1>
+      <p class="intro">학교에서 안내받은 설문 링크(또는 QR코드)로 접속해 주세요.</p>
+    </header>`;
+}
+
+/* ---------- grade chooser ---------- */
+function renderGrade(r){
+  role = null; bar.hidden = true; const s = S[r];
+  app.innerHTML = `
+    <header class="head">
+      <div class="school">${SCHOOL}</div>
+      <h1>${TITLE}</h1>
+      <span class="badge">${s.label}</span>
+      <p class="intro">${s.grades}.</p>
+    </header>
+    <nav class="roles" aria-label="학년 선택">
+      ${GRADES.map(g=>`<button type="button" class="role" data-g="${g}"><b>${g}학년</b><span>${s.who === "학부모" ? "자녀 " : ""}${g}학년</span></button>`).join("")}
+    </nav>`;
+  app.querySelectorAll(".role").forEach(b => b.onclick = () => go(r, b.dataset.g));
+}
+
+/* ---------- already done ---------- */
+function renderDone(r, g){
+  role = null; bar.hidden = true;
+  app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
+    <h2>이미 응답에 참여하였습니다</h2><p>이 기기에서는 이미 설문에 응답하셨습니다.<br>참여해 주셔서 감사합니다.</p></div>`;
+}
+
+/* ---------- survey ---------- */
+function renderSurvey(r, g){
+  role = r; grade = g; const s = S[r]; answers = {};
+  const d = loadDraft(r, g);
+  if (d && d.answers) answers = d.answers;
+  bar.hidden = false;
+  app.innerHTML = `
+    <header class="head">
+      <div class="school">${SCHOOL}</div>
+      <h1>${TITLE}</h1>
+      <span class="badge">${s.label}${g ? ` · ${g}학년` : ""}</span>
+      <p class="intro">${esc(s.intro)}</p>
+    </header>
+    <div class="legend" aria-hidden="true">
+      ${SCALE.map(o=>`<div><i style="background:var(--s${o.v})"></i><b>${o.v}. ${o.l}</b>${o.p}</div>`).join("")}
+    </div>
+    <form id="f" novalidate>
+      <div class="qlist">
+        ${s.q.map((q,i)=>`
+          <div class="q" id="q${i+1}" role="group" aria-labelledby="t${i+1}">
+            <div class="txt" id="t${i+1}"><span class="no">${i+1}</span>${esc(q[0])}${q[1]?`<span class="ex">(${esc(q[1])})</span>`:""}</div>
+            <div class="opts" role="radiogroup" aria-label="${i+1}번 문항 응답">
+              ${SCALE.map(o=>`<button type="button" class="opt" role="radio" aria-checked="false" data-q="${i+1}" data-v="${o.v}" id="q${i+1}-${o.v}"><span class="n">${o.v}</span><span class="l">${o.l}</span></button>`).join("")}
+            </div>
+            <div class="need">이 문항에 응답해 주세요.</div>
+          </div>`).join("")}
+      </div>
+      <section class="sec">
+        <h2>서술형 문항</h2>
+        <p class="s">자유롭게 적어 주세요. 비워 두셔도 제출할 수 있습니다.</p>
+        ${OPEN.map(o=>`<div class="open"><label for="o-${o.k}">${o.l}${o.h?`<br><small>${o.h}</small>`:""}</label>
+          <textarea id="o-${o.k}" maxlength="2000">${esc(d && d.open ? d.open[o.k] : "")}</textarea></div>`).join("")}
+      </section>
+      <div class="submit">
+        <button class="btn" id="sendBtn" type="submit">설문 제출하기</button>
+        <div class="msg" id="msg" aria-live="polite"></div>
+      </div>
+    </form>`;
+  Object.entries(answers).forEach(([q,v]) => mark(+q, v));
+  app.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => {
+    const q = +b.dataset.q, v = +b.dataset.v;
+    const first = !answers[q];
+    answers[q] = v; mark(q, v); saveDraft();
+    if (first) setTimeout(() => goNext(q), 220);
+  }));
+  app.querySelectorAll(".opts").forEach(g => g.addEventListener("keydown", e => {
+    const btns = [...g.querySelectorAll(".opt")]; const i = btns.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); btns[Math.min(4,i+1)].focus(); }
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); btns[Math.max(0,i-1)].focus(); }
+  }));
+  app.querySelectorAll("textarea").forEach(t => t.addEventListener("input", saveDraft));
+  document.getElementById("f").addEventListener("submit", onSubmit);
+  updateProgress();
+}
+function mark(q, v){
+  const fs = document.getElementById("q"+q); if (!fs) return;
+  fs.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-checked", String(+b.dataset.v === +v)));
+  fs.classList.add("done"); fs.classList.remove("missing");
+  updateProgress();
+}
+function goNext(q){
+  const n = S[role].q.length;
+  for (let i = q+1; i <= n; i++) if (!answers[i]) { document.getElementById("q"+i).scrollIntoView({behavior: reduce?"auto":"smooth", block:"center"}); return; }
+}
+function updateProgress(){
+  const n = S[role]?.q.length || 12, c = Object.keys(answers).length;
+  fill.style.width = (c/n*100) + "%"; prog.textContent = `${c} / ${n}`;
+}
+function readOpen(){ const o={}; OPEN.forEach(x => { const t=document.getElementById("o-"+x.k); o[x.k] = t ? t.value.trim() : ""; }); return o; }
+function onSubmit(e){
+  e.preventDefault();
+  const msg = document.getElementById("msg"), btn = document.getElementById("sendBtn");
+  const n = S[role].q.length; const miss = [];
+  for (let i=1;i<=n;i++) if (!answers[i]) { miss.push(i); document.getElementById("q"+i).classList.add("missing"); }
+  if (miss.length) {
+    msg.className = "msg err"; msg.textContent = `${miss.join(", ")}번 문항에 아직 응답하지 않았습니다.`;
+    document.getElementById("q"+miss[0]).scrollIntoView({behavior: reduce?"auto":"smooth", block:"center"});
+    return;
+  }
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "제출하는 중입니다…";
+  const payload = { role, grade, answers: Array.from({length:n},(_,i)=>answers[i+1]), open: readOpen() };
+  const r = role, g = grade;
+  const fail = text => { btn.disabled = false; msg.className = "msg err"; msg.textContent = text; };
+  if (!SHEET_URL) return fail("설문 저장 주소가 아직 설정되지 않았습니다. 설문 담당 선생님께 알려 주세요.");
+  // 본문을 text/plain으로 보내야 브라우저가 사전 확인(CORS preflight) 없이 Apps Script로 바로 보냅니다.
+  fetch(SHEET_URL, { method: "POST", body: JSON.stringify(payload) })
+    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) return fail(res.error || "제출하지 못했습니다. 다시 눌러 주세요.");
+      markDone(r, g); clearDraft(r, g); renderThanks();
+    })
+    .catch(() => fail("제출하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 눌러 주세요."));
+}
+function renderThanks(){
+  bar.hidden = true;
+  app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
+    <h2>설문이 완료되었습니다</h2><p>감사합니다.</p></div>`;
+  window.scrollTo(0,0);
+}
+
+/* 주소 끝에 ?role=student / parent / staff 를 붙이면 해당 설문이 바로 열립니다. (&grade=1~3 을 더 붙이면 학년 선택도 건너뜁니다) */
+/* 대상은 주소의 폴더(/student/, /parent/, /staff/)로 정합니다. 예전 ?role= 주소도 그대로 열립니다. */
+const params = new URLSearchParams(location.search);
+const pathRole = location.pathname.split("/").find(p => S[p]);
+go(pathRole || params.get("role"), params.get("grade"));
+</script>
+</body>
+</html>
