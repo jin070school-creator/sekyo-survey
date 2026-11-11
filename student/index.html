@@ -209,13 +209,14 @@ function loadDraft(r, g){ try{ return JSON.parse(localStorage.getItem(draftKey(r
 function clearDraft(r, g){ try{ localStorage.removeItem(draftKey(r, g)); }catch(e){} }
 
 /* 중복 참여 확인: 이 기기에서 제출한 기록을 남깁니다.
-   어느 설문이든 한 번 내면 다른 대상 설문도 막습니다. 단, 학부모는 자녀가 여러 명일 수 있어 다른 학년 학부모 설문만 허용합니다. */
+   가족이 휴대폰을 같이 쓸 수 있어 학생 설문과 학부모 설문은 서로 막지 않습니다. 학부모는 자녀 학년마다 한 번씩 낼 수 있습니다.
+   교직원 설문은 다른 설문과 함께 낼 수 없습니다. */
 function doneKey(r, g){ return "sekyo-survey-done-" + r + (r === "parent" ? "-" + g : ""); }
 function hasDone(key){ try{ return !!localStorage.getItem(key) || document.cookie.includes(key + "=1"); }catch(e){ return false; } }
 function isDone(r, g){
-  if (hasDone(doneKey("student")) || hasDone(doneKey("staff"))) return true;
-  const parentDone = GRADES.filter(x => hasDone(doneKey("parent", x)));
-  return r === "parent" ? parentDone.includes(g) : parentDone.length > 0;
+  if (hasDone(doneKey("staff"))) return true;
+  if (r === "staff") return hasDone(doneKey("student")) || GRADES.some(x => hasDone(doneKey("parent", x)));
+  return hasDone(doneKey(r, g));
 }
 function markDone(r, g){
   try{ localStorage.setItem(doneKey(r, g), new Date().toISOString()); }catch(e){}
