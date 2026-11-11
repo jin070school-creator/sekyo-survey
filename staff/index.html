@@ -201,7 +201,7 @@ const prog = document.getElementById("prog");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-let answers = {}, role = null, grade = null;
+let answers = {}, role = null, grade = null, editing = null;
 
 function draftKey(r, g){ return "sekyo-survey-draft-" + r + (g ? "-" + g : ""); }
 function saveDraft(){ try{ localStorage.setItem(draftKey(role, grade), JSON.stringify({answers, open:readOpen()})); }catch(e){} }
@@ -222,6 +222,12 @@ function markDone(r, g){
   try{ localStorage.setItem(doneKey(r, g), new Date().toISOString()); }catch(e){}
   try{ document.cookie = doneKey(r, g) + "=1; max-age=31536000; path=/; SameSite=None; Secure"; }catch(e){}
 }
+
+/* 응답 수정: 제출한 응답과 응답ID를 이 기기에 보관합니다. 수정해서 다시 내면 서버가 같은 응답ID의 줄을 덮어써서 1인 1응답이 유지됩니다. */
+function recKey(r, g){ return doneKey(r, g).replace("-done-", "-resp-"); }
+function loadRec(r, g){ try{ return JSON.parse(localStorage.getItem(recKey(r, g))||"null"); }catch(e){ return null; } }
+function saveRec(r, g, rec){ try{ localStorage.setItem(recKey(r, g), JSON.stringify(rec)); }catch(e){} }
+function newId(){ try{ return crypto.randomUUID(); }catch(e){ return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12); } }
 
 /* ---------- routing ---------- */
 function go(r, g){
@@ -263,14 +269,18 @@ function renderGrade(r){
 /* ---------- already done ---------- */
 function renderDone(r, g){
   role = null; bar.hidden = true;
+  const rec = loadRec(r, g), canEdit = !!(rec && rec.editable);
   app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
-    <h2>이미 응답에 참여하였습니다</h2><p>이 기기에서는 이미 설문에 응답하셨습니다.<br>참여해 주셔서 감사합니다.</p></div>`;
+    <h2>이미 응답에 참여하였습니다</h2><p>이 기기에서는 이미 설문에 응답하셨습니다.<br>참여해 주셔서 감사합니다.</p>
+    ${canEdit ? `<p style="margin-top:28px"><button type="button" class="btn ghost" id="editBtn">내 응답 수정하기</button></p>
+      <p style="font-size:14px">수정해서 다시 제출하면 처음 낸 응답이 새 내용으로 바뀝니다.</p>` : ""}</div>`;
+  if (canEdit) document.getElementById("editBtn").onclick = () => { renderSurvey(r, rec.grade || g, rec); window.scrollTo(0,0); };
 }
 
 /* ---------- survey ---------- */
-function renderSurvey(r, g){
-  role = r; grade = g; const s = S[r]; answers = {};
-  const d = loadDraft(r, g);
+function renderSurvey(r, g, rec){
+  role = r; grade = g; editing = rec || null; const s = S[r]; answers = {};
+  const d = rec ? { answers: Object.fromEntries(rec.answers.map((v, i) => [i + 1, v])), open: rec.open } : loadDraft(r, g);
   if (d && d.answers) answers = d.answers;
   bar.hidden = false;
   app.innerHTML = `
@@ -279,6 +289,7 @@ function renderSurvey(r, g){
       <h1>${TITLE}</h1>
       <span class="badge">${s.label}${g ? ` · ${g}학년` : ""}</span>
       <p class="intro">${esc(s.intro)}</p>
+      ${rec ? `<p class="intro" style="color:var(--accent);font-weight:600">제출한 응답을 수정하고 있습니다. 바꿀 부분만 고친 뒤 맨 아래 [수정 내용 제출하기]를 눌러 주세요.</p>` : ""}
     </header>
     <div class="legend" aria-hidden="true">
       ${SCALE.map(o=>`<div><i style="background:var(--s${o.v})"></i><b>${o.v}. ${o.l}</b>${o.p}</div>`).join("")}
@@ -301,7 +312,7 @@ function renderSurvey(r, g){
           <textarea id="o-${o.k}" maxlength="2000">${esc(d && d.open ? d.open[o.k] : "")}</textarea></div>`).join("")}
       </section>
       <div class="submit">
-        <button class="btn" id="sendBtn" type="submit">설문 제출하기</button>
+        <button class="btn" id="sendBtn" type="submit">${rec ? "수정 내용 제출하기" : "설문 제출하기"}</button>
         <div class="msg" id="msg" aria-live="polite"></div>
       </div>
     </form>`;
@@ -347,10 +358,10 @@ function onSubmit(e){
     document.getElementById("q"+miss[0]).scrollIntoView({behavior: reduce?"auto":"smooth", block:"center"});
     return;
   }
-  if (PREVIEW) { clearDraft(role, grade); renderThanks(); return; }
+  if (PREVIEW) { clearDraft(role, grade); renderThanks(!!editing); return; }
   btn.disabled = true; msg.className = "msg"; msg.textContent = "제출하는 중입니다…";
-  const payload = { role, grade, answers: Array.from({length:n},(_,i)=>answers[i+1]), open: readOpen() };
-  const r = role, g = grade;
+  const payload = { role, grade, id: editing ? editing.id : newId(), answers: Array.from({length:n},(_,i)=>answers[i+1]), open: readOpen() };
+  const r = role, g = grade, wasEdit = !!editing;
   const fail = text => { btn.disabled = false; msg.className = "msg err"; msg.textContent = text; };
   if (!SHEET_URL) return fail("설문 저장 주소가 아직 설정되지 않았습니다. 설문 담당 선생님께 알려 주세요.");
   // 본문을 text/plain으로 보내야 브라우저가 사전 확인(CORS preflight) 없이 Apps Script로 바로 보냅니다.
@@ -358,15 +369,18 @@ function onSubmit(e){
     .then(res => res.json())
     .then(res => {
       if (!res.ok) return fail(res.error || "제출하지 못했습니다. 다시 눌러 주세요.");
-      if (!TEST) markDone(r, g);
-      clearDraft(r, g); renderThanks();
+      if (!TEST) {
+        markDone(r, g);
+        saveRec(r, g, { id: payload.id, grade: g, answers: payload.answers, open: payload.open, editable: res.v >= 2 });
+      }
+      clearDraft(r, g); renderThanks(wasEdit);
     })
     .catch(() => fail("제출하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 눌러 주세요."));
 }
-function renderThanks(){
+function renderThanks(edited){
   bar.hidden = true;
   app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
-    <h2>설문이 완료되었습니다</h2><p>감사합니다.</p></div>`;
+    <h2>${edited ? "수정이 완료되었습니다" : "설문이 완료되었습니다"}</h2><p>감사합니다.</p></div>`;
   window.scrollTo(0,0);
 }
 
@@ -382,7 +396,7 @@ else go(pathRole || params.get("role"), params.get("grade"));
 function resetDevice(){
   const keys = [doneKey("student"), doneKey("staff"), ...GRADES.map(x => doneKey("parent", x))];
   keys.forEach(k => {
-    try{ localStorage.removeItem(k); }catch(e){}
+    try{ localStorage.removeItem(k); localStorage.removeItem(k.replace("-done-", "-resp-")); }catch(e){}
     try{ document.cookie = k + "=; max-age=0; path=/; SameSite=None; Secure"; }catch(e){}
   });
   try{ Object.keys(localStorage).filter(k => k.startsWith("sekyo-survey-draft-")).forEach(k => localStorage.removeItem(k)); }catch(e){}
