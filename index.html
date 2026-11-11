@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: one calm reading column; a sticky progress strip; each question is a row of five large, equal answer tiles (5 → 1, left to right, as on the paper form). */
+/* Layout: one calm reading column; a sticky progress strip; each question is a row of five large, equal answer tiles (1 → 5, left to right), each showing its score range. */
 :root{
   --bg:#f6f8f7; --surface:#ffffff; --ink:#18241f; --muted:#5c6b65; --line:#dbe3df;
   --accent:#1f6b4f; --accent-ink:#ffffff; --accent-soft:#e3f1ea;
@@ -76,6 +76,8 @@ button{font:inherit;color:inherit}
 .opt{--c:var(--s3);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;padding:10px 4px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;text-align:center;line-height:1.25;transition:background .12s,border-color .12s,transform .08s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .opt .n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--c)}
 .opt .l{font-size:14.5px;font-weight:600;word-break:keep-all}
+.opt .p{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+.opt[aria-checked="true"] .p{color:inherit;opacity:.85}
 .opt:hover{border-color:var(--c)}
 .opt:active{transform:scale(.97)}
 .opt[aria-checked="true"]{background:var(--c);border-color:var(--c);color:#fff}
@@ -83,7 +85,7 @@ button{font:inherit;color:inherit}
 @media (prefers-color-scheme:dark){.opt[aria-checked="true"],.opt[aria-checked="true"] .n{color:#0d1a14}}
 .opt[aria-checked="true"]::after{content:"✓";position:absolute;top:5px;right:8px;font-size:13px;font-weight:700}
 .opt[data-v="5"]{--c:var(--s5)}.opt[data-v="4"]{--c:var(--s4)}.opt[data-v="3"]{--c:var(--s3)}.opt[data-v="2"]{--c:var(--s2)}.opt[data-v="1"]{--c:var(--s1)}
-@media (max-width:480px){.opt{min-height:70px;padding:8px 2px}.opt .l{font-size:13px}.opt .n{font-size:20px}.q{padding:18px 14px 14px}}
+@media (max-width:480px){.opt{min-height:84px;padding:8px 2px}.opt .l{font-size:13px}.opt .n{font-size:20px}.opt .p{font-size:11px;letter-spacing:-.02em}.q{padding:18px 14px 14px}}
 
 /* open questions */
 .sec{margin-top:36px}
@@ -132,11 +134,11 @@ const PREVIEW = new URLSearchParams(location.search).has("preview");
 const SCHOOL = "세교중학교";
 const TITLE = "2026학년도 학교평가 및 2027학년도 교육과정 수립을 위한 설문";
 const SCALE = [
-  {v:5,l:"매우 그렇다",p:"81~100점"},
-  {v:4,l:"그렇다",p:"61~80점"},
-  {v:3,l:"보통이다",p:"41~60점"},
+  {v:1,l:"전혀 그렇지 않다",p:"0~20점"},
   {v:2,l:"그렇지 않다",p:"21~40점"},
-  {v:1,l:"전혀 그렇지 않다",p:"0~20점"}
+  {v:3,l:"보통이다",p:"41~60점"},
+  {v:4,l:"그렇다",p:"61~80점"},
+  {v:5,l:"매우 그렇다",p:"81~100점"}
 ];
 const OPEN = [
   {k:"keep",l:"2026학년도 교육활동 중에서 만족도가 높거나, 계속되었으면 하는 교육활동을 적어 주세요."},
@@ -283,7 +285,7 @@ function renderSurvey(r, g){
           <div class="q" id="q${i+1}" role="group" aria-labelledby="t${i+1}">
             <div class="txt" id="t${i+1}"><span class="no">${i+1}</span>${esc(q[0])}${q[1]?`<span class="ex">(${esc(q[1])})</span>`:""}</div>
             <div class="opts" role="radiogroup" aria-label="${i+1}번 문항 응답">
-              ${SCALE.map(o=>`<button type="button" class="opt" role="radio" aria-checked="false" data-q="${i+1}" data-v="${o.v}" id="q${i+1}-${o.v}"><span class="n">${o.v}</span><span class="l">${o.l}</span></button>`).join("")}
+              ${SCALE.map(o=>`<button type="button" class="opt" role="radio" aria-checked="false" data-q="${i+1}" data-v="${o.v}" id="q${i+1}-${o.v}"><span class="n">${o.v}</span><span class="l">${o.l}</span><span class="p">${o.p}</span></button>`).join("")}
             </div>
             <div class="need">이 문항에 응답해 주세요.</div>
           </div>`).join("")}
