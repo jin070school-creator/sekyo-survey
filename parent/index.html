@@ -130,6 +130,9 @@ textarea:focus{border-color:var(--accent);outline:none}
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzPs4QeEFMkNNtDBykzU7hyYLaV9OkXXos5tZ7JzTyacS4x8CNDf3Fw4Evp7aC0ehfokQ/exec";
 /* 주소 끝에 ?preview 를 붙이면 미리보기: 제출해도 시트에 저장되지 않고 중복 참여 확인도 하지 않습니다. */
 const PREVIEW = new URLSearchParams(location.search).has("preview");
+/* ?test: 실제로 시트에 저장하지만 이 기기에 참여 기록을 남기지 않습니다 (담당자 연습용). ?reset: 이 기기의 참여 기록을 지웁니다. */
+const TEST = new URLSearchParams(location.search).has("test");
+const RESET = new URLSearchParams(location.search).has("reset");
 
 const SCHOOL = "세교중학교";
 const TITLE = "2026학년도 학교평가 및 2027학년도 교육과정 수립을 위한 설문";
@@ -223,7 +226,7 @@ function markDone(r, g){
 function go(r, g){
   g = +g || null;
   if (!S[r]) renderHome();
-  else if (!PREVIEW && isDone(r, g)) renderDone(r, g);
+  else if (!PREVIEW && !TEST && isDone(r, g)) renderDone(r, g);
   else if (S[r].grades && !GRADES.includes(g)) renderGrade(r);
   else renderSurvey(r, g);
   window.scrollTo(0,0);
@@ -354,7 +357,8 @@ function onSubmit(e){
     .then(res => res.json())
     .then(res => {
       if (!res.ok) return fail(res.error || "제출하지 못했습니다. 다시 눌러 주세요.");
-      markDone(r, g); clearDraft(r, g); renderThanks();
+      if (!TEST) markDone(r, g);
+      clearDraft(r, g); renderThanks();
     })
     .catch(() => fail("제출하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 눌러 주세요."));
 }
@@ -370,7 +374,21 @@ function renderThanks(){
 const params = new URLSearchParams(location.search);
 const pathRole = location.pathname.split("/").find(p => S[p]);
 if (PREVIEW) document.body.insertAdjacentHTML("afterbegin", `<div class="preview">미리보기 화면입니다 · 제출해도 저장되지 않습니다</div>`);
-go(pathRole || params.get("role"), params.get("grade"));
+else if (TEST) document.body.insertAdjacentHTML("afterbegin", `<div class="preview">테스트 모드 · 실제로 시트에 저장됩니다 (확인 후 그 줄을 지워 주세요)</div>`);
+if (RESET) resetDevice();
+else go(pathRole || params.get("role"), params.get("grade"));
+
+function resetDevice(){
+  const keys = [doneKey("student"), doneKey("staff"), ...GRADES.map(x => doneKey("parent", x))];
+  keys.forEach(k => {
+    try{ localStorage.removeItem(k); }catch(e){}
+    try{ document.cookie = k + "=; max-age=0; path=/; SameSite=None; Secure"; }catch(e){}
+  });
+  try{ Object.keys(localStorage).filter(k => k.startsWith("sekyo-survey-draft-")).forEach(k => localStorage.removeItem(k)); }catch(e){}
+  bar.hidden = true;
+  app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
+    <h2>이 기기의 참여 기록을 지웠습니다</h2><p>이제 이 기기에서 다시 설문에 응답할 수 있습니다.</p></div>`;
+}
 </script>
 </body>
 </html>
