@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>세교중 설문 통계</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: password gate → participation tiles → one filter row (대상·학년) → summary tiles → diverging 100% bars per question → report table → open answers. */
+:root{
+  --bg:#f6f8f7; --surface:#ffffff; --ink:#18241f; --ink2:#3a4742; --muted:#5c6b65; --line:#dbe3df; --grid:#e8edeb;
+  --accent:#1f6b4f; --accent-ink:#ffffff; --accent-soft:#e3f1ea; --warn:#b4451f;
+  /* diverging: orange (disagree) ↔ gray midpoint ↔ blue (agree) */
+  --v1:#c4572a; --v2:#eaa36f; --v3:#b9bec4; --v4:#7fa8d6; --v5:#2f6db0;
+  --t1:#ffffff; --t2:#1d2430; --t3:#1d2430; --t4:#1d2430; --t5:#ffffff;
+  --f-display:"Gowun Batang",serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --r:14px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#18221e; --ink:#e7eeea; --ink2:#c3d0ca; --muted:#9db0a8; --line:#2b3a34; --grid:#22302a;
+  --accent:#5fc59a; --accent-ink:#0d1a14; --accent-soft:#1d3329; --warn:#f0906c;
+  --v1:#f08a55; --v2:#a8673f; --v3:#5b6168; --v4:#3f6a9a; --v5:#6fa3e0;
+  --t1:#10151c; --t2:#ffffff; --t3:#ffffff; --t4:#ffffff; --t5:#10151c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#18221e; --ink:#e7eeea; --ink2:#c3d0ca; --muted:#9db0a8; --line:#2b3a34; --grid:#22302a;
+  --accent:#5fc59a; --accent-ink:#0d1a14; --accent-soft:#1d3329; --warn:#f0906c;
+  --v1:#f08a55; --v2:#a8673f; --v3:#5b6168; --v4:#3f6a9a; --v5:#6fa3e0;
+  --t1:#10151c; --t2:#ffffff; --t3:#ffffff; --t4:#ffffff; --t5:#10151c; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;word-break:keep-all;overflow-wrap:break-word;-webkit-text-size-adjust:100%}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 72px}
+h1,h2{font-family:var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:clamp(24px,4.6vw,32px);line-height:1.35;margin-top:4px}
+h2{font-size:21px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+[hidden]{display:none!important}
+.school{font-size:14px;font-weight:600;color:var(--accent);letter-spacing:.06em}
+.meta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:10px;color:var(--muted);font-size:14px}
+.btn{appearance:none;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:7px 14px;font-weight:600;font-size:14px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.sec{margin-top:28px}
+.sec>h2{margin-bottom:12px}
+.msg{color:var(--muted);padding:12px 0}
+.msg.err{color:var(--warn);font-weight:600}
+
+/* gate */
+.gate{max-width:420px;margin-top:28px}
+.gate label{display:block;font-weight:600;margin-bottom:8px}
+.gate .row{display:flex;gap:8px}
+.gate input{flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg)}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:720px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.tile .k{font-size:14px;color:var(--muted);font-weight:600}
+.tile .v{font-size:32px;font-weight:700;line-height:1.2;margin-top:4px}
+.tile .v small{font-size:15px;font-weight:600;color:var(--muted);margin-left:2px}
+.tile .s{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+
+/* filter row */
+.filters{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.filters .lab{font-size:13px;color:var(--muted);font-weight:600}
+
+/* legend + bars */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px;color:var(--ink2);margin-bottom:6px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.qrow{padding:14px 0;border-top:1px solid var(--grid);outline:none}
+.qrow:first-of-type{border-top:0}
+.qhead{display:flex;gap:12px;align-items:baseline;justify-content:space-between}
+.qtext{font-size:15px;color:var(--ink);min-width:0}
+.qtext b{color:var(--accent);margin-right:4px}
+.qavg{white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums}
+.qavg small{color:var(--muted);font-weight:500;margin-left:6px}
+.bar{display:flex;gap:2px;height:26px;margin-top:8px;background:var(--surface)}
+.bar span{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;min-width:0}
+.bar span:first-child{border-radius:4px 0 0 4px}.bar span:last-child{border-radius:0 4px 4px 0}
+.bar span:only-child{border-radius:4px}
+.bar.empty{background:var(--grid);border-radius:4px}
+.qrow:hover .bar,.qrow:focus-visible .bar{filter:saturate(1.15)}
+.tip{position:fixed;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.14);min-width:180px}
+.tip div{display:flex;justify-content:space-between;gap:14px;font-variant-numeric:tabular-nums}
+.tip i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:6px}
+
+/* table */
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:760px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:right;font-variant-numeric:tabular-nums;vertical-align:top}
+th{background:var(--accent-soft);font-weight:600;color:var(--ink);white-space:nowrap}
+td.q,th.q{text-align:left;font-variant-numeric:normal}
+td.q{min-width:260px}
+tr.total td{font-weight:700;border-top:2px solid var(--line)}
+
+/* open answers */
+.open h3{font-size:16px;margin:18px 0 6px}
+.open h3 small{color:var(--muted);font-weight:500;margin-left:6px}
+.open ul{margin:0;padding-left:20px;font-size:15px;color:var(--ink2)}
+.open li{margin:4px 0}
+
+@media print{
+  body{background:#fff;color:#000}
+  .meta .btn,.filters,.tools,.gate{display:none!important}
+  .card,.tile,.tbl{border-color:#ccc}
+  .qrow{break-inside:avoid}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="school">세교중학교</div>
+    <h1>2026학년도 학교평가 설문 결과</h1>
+    <div class="meta" id="meta" hidden>
+      <span id="updated"></span>
+      <button class="btn" id="refresh" type="button">지금 새로고침</button>
+      <button class="btn" id="print" type="button">인쇄 · PDF 저장</button>
+      <button class="btn" id="logout" type="button">잠그기</button>
+    </div>
+  </header>
+
+  <form class="gate card" id="gate" hidden>
+    <label for="key">통계 비밀번호</label>
+    <div class="row"><input id="key" type="password" autocomplete="current-password"><button class="btn primary" type="submit">보기</button></div>
+    <div class="msg" id="gateMsg"></div>
+  </form>
+
+  <div id="main" hidden>
+    <section class="sec">
+      <h2>참여 현황</h2>
+      <div class="tiles" id="participation"></div>
+    </section>
+
+    <div class="filters sec" role="toolbar" aria-label="보기 선택">
+      <span class="lab">대상</span>
+      <div class="seg" id="roleSeg"></div>
+      <span class="lab" id="gradeLab">학년</span>
+      <div class="seg" id="gradeSeg"></div>
+    </div>
+
+    <section class="sec">
+      <div class="tiles" id="summary"></div>
+    </section>
+
+    <section class="sec card">
+      <h2 id="chartTitle">문항별 응답 비율</h2>
+      <p class="msg" style="padding:4px 0 10px">막대 위에 마우스를 올리거나 눌러 보면 인원수가 나옵니다. 정확한 값은 아래 표에 있습니다.</p>
+      <div class="legend" id="legend"></div>
+      <div id="bars"></div>
+    </section>
+
+    <section class="sec">
+      <h2>보고서용 통계표</h2>
+      <div class="tools">
+        <button class="btn" id="copy" type="button">표 복사 (한글·엑셀에 붙여넣기)</button>
+        <button class="btn" id="csv" type="button">엑셀(CSV) 내려받기 — 전체 대상</button>
+        <span class="msg" id="toolMsg" style="padding:6px 0"></span>
+      </div>
+      <div class="tbl"><table id="table"></table></div>
+      <p class="msg">100점 환산 = 5점 평균 × 20 · 비율은 해당 문항 응답자 중 비율입니다.</p>
+    </section>
+
+    <section class="sec card open" id="open"></section>
+  </div>
+</main>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+/* ▼ 설문 페이지(index.html)와 같은 Apps Script 웹 앱 주소입니다. */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyJdoNTo3Cv4X5D8m8QMXygjii18vr-bjVM2jJRRw6kyg1whyFKLdixpUO-ebbiocCySw/exec";
+const KEY_STORE = "sekyo-stats-key";
+const REFRESH_MS = 60000;
+const ROLES = [["student","학생"],["parent","학부모"],["staff","교직원"]];
+// 설문과 같은 1 → 5 순서로 쌓습니다.
+const SCALE = [
+  {v:1,l:"전혀 그렇지 않다"},{v:2,l:"그렇지 않다"},{v:3,l:"보통이다"},{v:4,l:"그렇다"},{v:5,l:"매우 그렇다"}
+];
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = (c, n) => n ? c / n * 100 : 0;
+const f1 = x => (Math.round(x * 10) / 10).toFixed(1);
+const f2 = x => (Math.round(x * 100) / 100).toFixed(2);
+const hundred = avg => f1(avg * 20);
+
+let key = null, data = null, role = "student", grade = "all", timer = null;
+try { key = localStorage.getItem(KEY_STORE); } catch(e) {}
+
+/* ---------- data ---------- */
+async function load(){
+  document.body.style.opacity = data ? .6 : 1;   // 새로고침 중엔 이전 화면을 흐리게 유지
+  try {
+    const res = await fetch(`${SHEET_URL}?stats&key=${encodeURIComponent(key)}&t=${Date.now()}`);
+    const text = await res.text();
+    let j;
+    try { j = JSON.parse(text); } catch(e) { throw new Error("저장 서버가 아직 예전 버전입니다. Apps Script에서 [배포 → 배포 관리 → 연필 → 버전: 새 버전 → 배포]를 해 주세요."); }
+    if (!j.ok) { lock(j.error || "비밀번호가 맞지 않습니다."); return; }
+    data = j.stats;
+    $("gate").hidden = true; $("main").hidden = false; $("meta").hidden = false;
+    render();
+    clearTimeout(timer); timer = setTimeout(load, REFRESH_MS);
+  } catch(err) {
+    if (!data) lock(err.message || "통계를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.");
+    else $("updated").textContent = "새로고침 실패 · 잠시 후 다시 시도합니다";
+    clearTimeout(timer); timer = setTimeout(load, REFRESH_MS);
+  } finally {
+    document.body.style.opacity = 1;
+  }
+}
+function lock(msg){
+  clearTimeout(timer); data = null;
+  $("main").hidden = true; $("meta").hidden = true; $("gate").hidden = false;
+  $("gateMsg").className = msg ? "msg err" : "msg"; $("gateMsg").textContent = msg || "";
+  $("key").focus();
+}
+
+// 선택한 대상·학년의 응답 수, 문항별 1~5점 인원, 서술형을 모읍니다.
+function slice(r, g){
+  const gs = data.roles[r].grades;
+  const keys = g === "all" ? Object.keys(gs) : (gs[g] ? [g] : []);
+  const out = { n:0, counts: data.roles[r].questions.map(() => [0,0,0,0,0]), open: data.openHead.map(() => []) };
+  keys.forEach(k => {
+    out.n += gs[k].n;
+    gs[k].counts.forEach((c, i) => c.forEach((v, j) => out.counts[i][j] += v));
+    gs[k].open.forEach((list, i) => out.open[i].push(...list));
+  });
+  return out;
+}
+function qStats(c){
+  const n = c.reduce((a, b) => a + b, 0);
+  const avg = n ? c.reduce((a, b, k) => a + b * (k + 1), 0) / n : 0;
+  return { n, avg, p: c.map(x => pct(x, n)) };
+}
+function roleTotal(r, g){ const gs = data.roles[r].grades; return g ? (gs[g] ? gs[g].n : 0) : Object.values(gs).reduce((a, b) => a + b.n, 0); }
+
+/* ---------- render ---------- */
+function render(){
+  const d = new Date(data.updated);
+  $("updated").textContent = `마지막 갱신 ${d.toLocaleString("ko-KR", {month:"long", day:"numeric", hour:"2-digit", minute:"2-digit"})} · 1분마다 자동 갱신`;
+
+  const all = ROLES.reduce((a, [r]) => a + roleTotal(r), 0);
+  $("participation").innerHTML = ROLES.map(([r, label]) => {
+    const sub = r === "staff" ? "" : ["1","2","3"].map(g => `${g}학년 ${roleTotal(r, g)}`).join(" · ");
+    return `<div class="tile"><div class="k">${label}</div><div class="v">${roleTotal(r)}<small>명</small></div><div class="s">${sub || "&nbsp;"}</div></div>`;
+  }).join("") + `<div class="tile"><div class="k">전체</div><div class="v">${all}<small>명</small></div><div class="s">&nbsp;</div></div>`;
+
+  $("roleSeg").innerHTML = ROLES.map(([r, label]) => `<button type="button" data-r="${r}" aria-pressed="${r === role}">${label}</button>`).join("");
+  const hasGrade = role !== "staff";
+  $("gradeSeg").hidden = $("gradeLab").hidden = !hasGrade;
+  if (!hasGrade) grade = "all";
+  $("gradeSeg").innerHTML = [["all","전체"],["1","1학년"],["2","2학년"],["3","3학년"]].map(([g, l]) => `<button type="button" data-g="${g}" aria-pressed="${g === grade}">${l}</button>`).join("");
+
+  const s = slice(role, grade);
+  const qs = s.counts.map(qStats);
+  const answered = qs.filter(q => q.n);
+  const mean = answered.length ? answered.reduce((a, q) => a + q.avg, 0) / answered.length : 0;
+  const posN = s.counts.reduce((a, c) => a + c[3] + c[4], 0), allN = s.counts.reduce((a, c) => a + c.reduce((x, y) => x + y, 0), 0);
+  const label = ROLES.find(x => x[0] === role)[1] + (grade === "all" ? "" : ` ${grade}학년`);
+  $("summary").innerHTML = [
+    ["응답 수", s.n, "명", label],
+    ["전체 평균", s.n ? f2(mean) : "–", s.n ? "/ 5점" : "", "12개 문항 평균"],
+    ["100점 환산", s.n ? hundred(mean) : "–", s.n ? "점" : "", "평균 × 20"],
+    ["긍정 응답", allN ? f1(pct(posN, allN)) : "–", allN ? "%" : "", "그렇다 + 매우 그렇다"]
+  ].map(([k, v, u, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}<small>${u}</small></div><div class="s">${sub}</div></div>`).join("");
+
+  $("chartTitle").textContent = `${label} 문항별 응답 비율`;
+  $("legend").innerHTML = SCALE.map(o => `<span><i style="background:var(--v${o.v})"></i>${o.v}. ${o.l}</span>`).join("");
+  const questions = data.roles[role].questions;
+  $("bars").innerHTML = questions.map((q, i) => {
+    const st = qs[i];
+    const segs = st.n ? SCALE.map(o => {
+      const p = st.p[o.v - 1];
+      if (!p) return "";
+      return `<span style="width:${p}%;background:var(--v${o.v});color:var(--t${o.v})">${p >= 9 ? Math.round(p) + "%" : ""}</span>`;
+    }).join("") : "";
+    return `<div class="qrow" tabindex="0" data-i="${i}">
+      <div class="qhead"><div class="qtext"><b>${i + 1}</b>${esc(q)}</div>
+      <div class="qavg">${st.n ? f2(st.avg) : "–"}<small>${st.n ? hundred(st.avg) + "점" : "응답 없음"}</small></div></div>
+      <div class="bar${st.n ? "" : " empty"}">${segs}</div></div>`;
+  }).join("");
+
+  renderTable(questions, qs, mean, s.n);
+  renderOpen(s, label);
+}
+
+function tableRows(questions, qs, mean){
+  const head = ["문항", "내용", "응답 수", "평균(5점)", "100점 환산", ...SCALE.slice().reverse().map(o => `${o.l}(${o.v})`)];
+  const rows = questions.map((q, i) => {
+    const st = qs[i];
+    return [i + 1, q, st.n, st.n ? f2(st.avg) : "", st.n ? hundred(st.avg) : "", ...[4,3,2,1,0].map(k => st.n ? f1(st.p[k]) + "%" : "")];
+  });
+  const answered = qs.some(q => q.n);
+  rows.push(["", "전체 평균", "", answered ? f2(mean) : "", answered ? hundred(mean) : "", "", "", "", "", ""]);
+  return [head, ...rows];
+}
+function renderTable(questions, qs, mean){
+  const rows = tableRows(questions, qs, mean);
+  $("table").innerHTML = `<thead><tr>${rows[0].map((h, i) => `<th${i === 1 ? ' class="q"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.slice(1).map((r, ri) => `<tr${ri === rows.length - 2 ? ' class="total"' : ""}>${r.map((c, i) => `<td${i === 1 ? ' class="q"' : ""}>${esc(c)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+}
+function renderOpen(s, label){
+  $("open").innerHTML = `<h2>${esc(label)} 서술형 응답</h2>` + data.openHead.map((h, i) => {
+    const list = s.open[i];
+    return `<h3>${esc(h)}<small>${list.length}건</small></h3>` +
+      (list.length ? `<ul>${list.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="msg" style="padding:2px 0">작성된 응답이 없습니다.</p>`);
+  }).join("");
+}
+
+/* ---------- tooltip ---------- */
+function showTip(row, x, y){
+  const i = +row.dataset.i, st = qStats(slice(role, grade).counts[i]);
+  if (!st.n) return hideTip();
+  const tip = $("tip");
+  tip.innerHTML = `<b>${i + 1}번 문항 · ${st.n}명</b>` + SCALE.slice().reverse().map(o =>
+    `<div><span><i style="background:var(--v${o.v})"></i>${o.l}</span><span>${Math.round(st.p[o.v - 1] / 100 * st.n)}명 · ${f1(st.p[o.v - 1])}%</span></div>`).join("");
+  tip.hidden = false;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, x + 14)) + "px";
+  tip.style.top = Math.max(8, Math.min(innerHeight - h - 8, y + 14)) + "px";
+}
+function hideTip(){ $("tip").hidden = true; }
+$("bars").addEventListener("mousemove", e => { const r = e.target.closest(".qrow"); r ? showTip(r, e.clientX, e.clientY) : hideTip(); });
+$("bars").addEventListener("mouseleave", hideTip);
+$("bars").addEventListener("focusin", e => { const r = e.target.closest(".qrow"); if (r) { const b = r.getBoundingClientRect(); showTip(r, b.left + 20, b.bottom - 6); } });
+$("bars").addEventListener("focusout", hideTip);
+$("bars").addEventListener("click", e => { const r = e.target.closest(".qrow"); if (r) { const b = r.getBoundingClientRect(); showTip(r, b.left + 20, b.bottom - 6); } });
+
+/* ---------- controls ---------- */
+$("roleSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { role = b.dataset.r; grade = "all"; render(); } });
+$("gradeSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { grade = b.dataset.g; render(); } });
+$("refresh").onclick = load;
+$("print").onclick = () => window.print();
+$("logout").onclick = () => { try { localStorage.removeItem(KEY_STORE); } catch(e) {} key = null; $("key").value = ""; lock(""); };
+$("gate").addEventListener("submit", e => {
+  e.preventDefault();
+  key = $("key").value.trim(); if (!key) return;
+  try { localStorage.setItem(KEY_STORE, key); } catch(e) {}
+  $("gateMsg").className = "msg"; $("gateMsg").textContent = "불러오는 중…";
+  load();
+});
+
+function currentRows(){
+  const s = slice(role, grade), qs = s.counts.map(qStats), answered = qs.filter(q => q.n);
+  const mean = answered.length ? answered.reduce((a, q) => a + q.avg, 0) / answered.length : 0;
+  return tableRows(data.roles[role].questions, qs, mean);
+}
+$("copy").onclick = async () => {
+  const tsv = currentRows().map(r => r.join("\t")).join("\n");
+  try { await navigator.clipboard.writeText(tsv); $("toolMsg").textContent = "복사했습니다. 한글·엑셀에서 붙여넣기(Ctrl+V) 하세요."; }
+  catch(e) {
+    const t = document.createElement("textarea"); t.value = tsv; document.body.appendChild(t); t.select();
+    try { document.execCommand("copy"); $("toolMsg").textContent = "복사했습니다."; } catch(_) { $("toolMsg").textContent = "복사하지 못했습니다."; }
+    t.remove();
+  }
+};
+// 학생·학부모(학년별 포함)·교직원 통계를 한 파일에 담습니다.
+$("csv").onclick = () => {
+  const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [];
+  ROLES.forEach(([r, label]) => {
+    const grades = r === "staff" ? ["all"] : ["all", "1", "2", "3"];
+    grades.forEach(g => {
+      const s = slice(r, g), qs = s.counts.map(qStats), answered = qs.filter(x => x.n);
+      const mean = answered.length ? answered.reduce((a, x) => a + x.avg, 0) / answered.length : 0;
+      lines.push([`${label}${g === "all" ? " 전체" : ` ${g}학년`} (응답 ${s.n}명)`].map(q).join(","));
+      tableRows(data.roles[r].questions, qs, mean).forEach(row => lines.push(row.map(q).join(",")));
+      lines.push("");
+    });
+  });
+  const blob = new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `세교중_학교평가설문_통계_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+if (key) load(); else lock("");
+</script>
+</body>
+</html>
