@@ -133,6 +133,8 @@ const PREVIEW = new URLSearchParams(location.search).has("preview");
 /* ?test: 실제로 시트에 저장하지만 이 기기에 참여 기록을 남기지 않습니다 (담당자 연습용). ?reset: 이 기기의 참여 기록을 지웁니다. */
 const TEST = new URLSearchParams(location.search).has("test");
 const RESET = new URLSearchParams(location.search).has("reset");
+/* ?shared: 여러 학생이 돌려 쓰는 학교 기기용. 실제로 저장하되 참여 기록·임시저장을 남기지 않고, 제출 5초 뒤 다음 학생 화면으로 돌아갑니다. */
+const SHARED = new URLSearchParams(location.search).has("shared");
 
 const SCHOOL = "세교중학교";
 const TITLE = "2026학년도 학교평가 및 2027학년도 교육과정 수립을 위한 설문";
@@ -204,8 +206,8 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let answers = {}, role = null, grade = null, editing = null;
 
 function draftKey(r, g){ return "sekyo-survey-draft-" + r + (g ? "-" + g : ""); }
-function saveDraft(){ try{ localStorage.setItem(draftKey(role, grade), JSON.stringify({answers, open:readOpen()})); }catch(e){} }
-function loadDraft(r, g){ try{ return JSON.parse(localStorage.getItem(draftKey(r, g))||"null"); }catch(e){ return null; } }
+function saveDraft(){ if (SHARED) return; try{ localStorage.setItem(draftKey(role, grade), JSON.stringify({answers, open:readOpen()})); }catch(e){} }
+function loadDraft(r, g){ if (SHARED) return null; try{ return JSON.parse(localStorage.getItem(draftKey(r, g))||"null"); }catch(e){ return null; } }
 function clearDraft(r, g){ try{ localStorage.removeItem(draftKey(r, g)); }catch(e){} }
 
 /* 중복 참여 확인: 이 기기에서 제출한 기록을 남깁니다.
@@ -233,7 +235,7 @@ function newId(){ try{ return crypto.randomUUID(); }catch(e){ return Date.now().
 function go(r, g){
   g = +g || null;
   if (!S[r]) renderHome();
-  else if (!PREVIEW && !TEST && isDone(r, g)) renderDone(r, g);
+  else if (!PREVIEW && !TEST && !SHARED && isDone(r, g)) renderDone(r, g);
   else if (S[r].grades && !GRADES.includes(g)) renderGrade(r);
   else renderSurvey(r, g);
   window.scrollTo(0,0);
@@ -369,13 +371,27 @@ function onSubmit(e){
     .then(res => res.json())
     .then(res => {
       if (!res.ok) return fail(res.error || "제출하지 못했습니다. 다시 눌러 주세요.");
-      if (!TEST) {
+      if (!TEST && !SHARED) {
         markDone(r, g);
         saveRec(r, g, { id: payload.id, grade: g, answers: payload.answers, open: payload.open, editable: res.v >= 2 });
       }
       clearDraft(r, g); renderThanks(wasEdit);
+      if (SHARED) nextStudent(r);
     })
     .catch(() => fail("제출하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 눌러 주세요."));
+}
+// 공용 기기: 완료 화면을 잠깐 보여 준 뒤 다음 학생을 위해 처음(학년 선택) 화면으로 돌아갑니다.
+function nextStudent(r){
+  const el = document.createElement("p");
+  el.style.marginTop = "18px";
+  app.querySelector(".thanks").appendChild(el);
+  let s = 5;
+  const tick = () => {
+    if (s <= 0) { answers = {}; go(r); return; }
+    el.textContent = `${s}초 후 다음 학생 화면으로 넘어갑니다.`;
+    s--; setTimeout(tick, 1000);
+  };
+  tick();
 }
 function renderThanks(edited){
   bar.hidden = true;
@@ -390,6 +406,7 @@ const params = new URLSearchParams(location.search);
 const pathRole = location.pathname.split("/").find(p => S[p]);
 if (PREVIEW) document.body.insertAdjacentHTML("afterbegin", `<div class="preview">미리보기 화면입니다 · 제출해도 저장되지 않습니다</div>`);
 else if (TEST) document.body.insertAdjacentHTML("afterbegin", `<div class="preview">테스트 모드 · 실제로 시트에 저장됩니다 (확인 후 그 줄을 지워 주세요)</div>`);
+else if (SHARED) document.body.insertAdjacentHTML("afterbegin", `<div class="preview" style="background:var(--accent);color:var(--accent-ink)">공용 기기용 화면 · 제출하면 다음 학생 화면으로 넘어갑니다</div>`);
 if (RESET) resetDevice();
 else go(pathRole || params.get("role"), params.get("grade"));
 
