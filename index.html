@@ -46,10 +46,6 @@ button{font:inherit;color:inherit}
 .role b{font-family:var(--f-display);font-size:22px}
 .role span{color:var(--muted);font-size:15px}
 @media (max-width:560px){.roles{grid-template-columns:1fr}}
-.roles.classes{grid-template-columns:repeat(4,1fr)}
-.roles.classes .role{align-items:center;padding:16px 8px}
-@media (max-width:560px){.roles.classes{grid-template-columns:repeat(3,1fr)}}
-
 /* sticky progress */
 .bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
 .bar .in{max-width:760px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
@@ -154,8 +150,6 @@ const OPEN = [
   {k:"new",l:"2027학년도에 새로 도입했으면 하는 교육활동을 적어 주세요."}
 ];
 const GRADES = [1,2,3];
-/* 학생 설문은 학년 다음에 반을 고릅니다 (반별 참여 인원 집계용, 응답 내용과는 연결하지 않습니다). 학년: 반 수 */
-const CLASSES = {1:12, 2:13, 3:9};
 const S = {
   student:{label:"학생용",who:"학생",grades:"학년을 선택해 주세요",intro:"이 설문은 2026학년도 세교중학교의 교육활동과 학교 운영을 돌아보고, 2027학년도 학교교육과정 수립에 학생 여러분의 의견을 반영하기 위한 것입니다. 성실하게 응답하여 주시길 바랍니다. 감사합니다.",q:[
     ["우리 학교는 소통과 공감, 존중과 배려의 관계 형성을 위해 노력한다."],
@@ -242,7 +236,6 @@ function go(r, g, c){
   if (!S[r]) renderHome();
   else if (!PREVIEW && !TEST && !SHARED && isDone(r, g)) renderDone(r, g);
   else if (S[r].grades && !GRADES.includes(g)) renderGrade(r);
-  else if (r === "student" && !(c >= 1 && c <= CLASSES[g])) renderClass(r, g);
   else renderSurvey(r, g, null, c);
   window.scrollTo(0,0);
 }
@@ -272,24 +265,6 @@ function renderGrade(r){
       ${GRADES.map(g=>`<button type="button" class="role" data-g="${g}"><b>${g}학년</b><span>${s.who === "학부모" ? "자녀 " : ""}${g}학년</span></button>`).join("")}
     </nav>`;
   app.querySelectorAll(".role").forEach(b => b.onclick = () => go(r, b.dataset.g));
-}
-
-/* ---------- class chooser (학생) ---------- */
-function renderClass(r, g){
-  role = null; bar.hidden = true; const s = S[r];
-  app.innerHTML = `
-    <header class="head">
-      <div class="school">${SCHOOL}</div>
-      <h1>${TITLE}</h1>
-      <span class="badge">${s.label} · ${g}학년</span>
-      <p class="intro">반을 선택해 주세요. (반별 참여 인원만 집계하며, 응답 내용은 무기명으로 저장됩니다.)</p>
-    </header>
-    <nav class="roles classes" aria-label="반 선택">
-      ${Array.from({length: CLASSES[g]}, (_, i) => `<button type="button" class="role" data-c="${i + 1}"><b>${g}-${i + 1}반</b></button>`).join("")}
-    </nav>
-    <div class="submit"><button type="button" class="btn ghost" id="regrade">← 학년 다시 선택</button></div>`;
-  app.querySelectorAll(".role").forEach(b => b.onclick = () => go(r, g, b.dataset.c));
-  document.getElementById("regrade").onclick = () => { renderGrade(r); window.scrollTo(0,0); };
 }
 
 /* ---------- already done ---------- */
