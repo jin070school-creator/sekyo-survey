@@ -381,7 +381,8 @@ function onSubmit(e){
         markDone(r, g);
         saveRec(r, g, { id: payload.id, grade: g, cls: payload.cls, answers: payload.answers, open: payload.open, editable: res.v >= 2 });
       }
-      clearDraft(r, g); renderThanks(wasEdit);
+      clearDraft(r, g);
+      if (TEST || SHARED) renderThanks(wasEdit); else renderThanks(wasEdit, r, g);
       if (SHARED) nextStudent(r);
     })
     .catch(() => fail("제출하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 눌러 주세요."));
@@ -399,10 +400,14 @@ function nextStudent(r){
   };
   tick();
 }
-function renderThanks(edited){
+// r, g 를 넘기면 방금 낸 응답을 고칠 수 있는 [내 응답 수정하기] 버튼도 보여 줍니다 (같은 설문만, 다른 대상 설문으로는 가지 않습니다).
+function renderThanks(edited, r, g){
   bar.hidden = true;
+  const rec = r ? loadRec(r, g) : null, canEdit = !!(rec && rec.editable);
   app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
-    <h2>${edited ? "수정이 완료되었습니다" : "설문이 완료되었습니다"}</h2><p>감사합니다.</p></div>`;
+    <h2>${edited ? "수정이 완료되었습니다" : "설문이 완료되었습니다"}</h2><p>감사합니다.</p>
+    ${canEdit ? `<p style="margin-top:28px"><button type="button" class="btn ghost" id="editBtn">내 응답 수정하기</button></p>` : ""}</div>`;
+  if (canEdit) document.getElementById("editBtn").onclick = () => { renderSurvey(r, rec.grade || g, rec); window.scrollTo(0,0); };
   window.scrollTo(0,0);
 }
 
