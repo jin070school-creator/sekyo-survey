@@ -150,6 +150,13 @@ const OPEN = [
   {k:"new",l:"2027학년도에 새로 도입했으면 하는 교육활동을 적어 주세요."}
 ];
 const GRADES = [1,2,3];
+/* 마감 시각 (한국 시간). 지나면 설문 대신 마감 안내가 나옵니다. 미리보기(?preview)는 마감 뒤에도 열립니다. 내년에는 날짜만 바꾸면 됩니다. */
+const CLOSE = {
+  student:{at:"2026-11-25T12:00:00+09:00", text:"11월 25일(수) 낮 12시"},
+  staff:  {at:"2026-11-25T12:00:00+09:00", text:"11월 25일(수) 낮 12시"},
+  parent: {at:"2026-11-27T00:00:00+09:00", text:"11월 26일(목) 밤 12시"}
+};
+const isClosed = r => !PREVIEW && Date.now() >= Date.parse(CLOSE[r].at);
 const S = {
   student:{label:"학생용",who:"학생",grades:"학년을 선택해 주세요",intro:"이 설문은 2026학년도 세교중학교의 교육활동과 학교 운영을 돌아보고, 2027학년도 학교교육과정 수립에 학생 여러분의 의견을 반영하기 위한 것입니다. 성실하게 응답하여 주시길 바랍니다. 감사합니다.",q:[
     ["우리 학교는 소통과 공감, 존중과 배려의 관계 형성을 위해 노력한다."],
@@ -234,6 +241,7 @@ function newId(){ try{ return crypto.randomUUID(); }catch(e){ return Date.now().
 function go(r, g, c){
   g = +g || null; c = +c || null;
   if (!S[r]) renderHome();
+  else if (isClosed(r)) renderClosed(r);
   else if (!PREVIEW && !TEST && !SHARED && isDone(r, g)) renderDone(r, g);
   else if (S[r].grades && !GRADES.includes(g)) renderGrade(r);
   else renderSurvey(r, g, null, c);
@@ -249,6 +257,15 @@ function renderHome(){
       <h1>${TITLE}</h1>
       <p class="intro">학교에서 안내받은 설문 링크(또는 QR코드)로 접속해 주세요.</p>
     </header>`;
+}
+
+/* ---------- closed ---------- */
+function renderClosed(r){
+  role = null; bar.hidden = true;
+  app.innerHTML = `<div class="thanks"><div class="mark" aria-hidden="true">✓</div>
+    <h2>설문이 마감되었습니다</h2>
+    <p>${S[r].label} 설문은 ${CLOSE[r].text}에 마감되었습니다.<br>참여해 주셔서 감사합니다.</p></div>`;
+  window.scrollTo(0,0);
 }
 
 /* ---------- grade chooser ---------- */
@@ -367,6 +384,7 @@ function onSubmit(e){
     return;
   }
   if (PREVIEW) { clearDraft(role, grade); renderThanks(!!editing); return; }
+  if (isClosed(role)) { renderClosed(role); return; }   // 마감 전에 열어 두고 마감 뒤에 제출한 경우
   btn.disabled = true; msg.className = "msg"; msg.textContent = "제출하는 중입니다…";
   const payload = { role, grade, cls, id: editing ? editing.id : newId(), answers: Array.from({length:n},(_,i)=>answers[i+1]), open: readOpen() };
   const r = role, g = grade, wasEdit = !!editing;
